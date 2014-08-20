@@ -6,8 +6,8 @@
 # Written by Peter Claydon
 #
 ModuleName               = "fibaro_motion_sensor"
-BATTERY_CHECK_INTERVAL   = 300      # How often to check battery (secs)
-SENSOR_POLL_INTERVAL     = 180      # How often to request sensor values
+BATTERY_CHECK_INTERVAL   = 600      # How often to check battery (secs)
+SENSOR_POLL_INTERVAL     = 300      # How often to request sensor values
 
 import sys
 import time
@@ -26,22 +26,12 @@ class Adaptor(CbAdaptor):
         self.state =            "stopped"
         self.apps =             {"binary_sensor": [],
                                  "temperature": [],
-                                 "humidity": [],
                                  "luminance": []}
         # super's __init__ must be called:
         #super(Adaptor, self).__init__(argv)
         CbAdaptor.__init__(self, argv)
  
     def setState(self, action):
-        if self.state == "stopped":
-            if action == "starting":
-                self.state = "starting"
-        elif self.state == "starting":
-            if action == "inUse":
-                self.state = "activate"
-        if self.state == "activate":
-            reactor.callLater(0, self.poll)
-            self.state = "running"
         # error is only ever set from the running state, so set back to running if error is cleared
         if action == "error":
             self.state == "error"
@@ -53,15 +43,6 @@ class Adaptor(CbAdaptor):
                "state": self.state}
         self.sendManagerMessage(msg)
 
-    def reportState(self, state):
-        logging.debug("%s %s Switch state = %s", ModuleName, self.id, state)
-        msg = {"id": self.id,
-               "timeStamp": time.time(),
-               "content": "switch_state",
-               "data": state}
-        for a in self.apps:
-            self.sendMessage(msg, a)
-
     def sendParameter(self, parameter, data, timeStamp):
         msg = {"id": self.id,
                "content": parameter,
@@ -69,10 +50,6 @@ class Adaptor(CbAdaptor):
                "timeStamp": timeStamp}
         for a in self.apps[parameter]:
             self.sendMessage(msg, a)
-
-    def onStop(self):
-        # Mainly caters for situation where adaptor is told to stop while it is starting
-        pass
 
     def checkBattery(self):
         cmd = {"id": self.id,
@@ -97,12 +74,6 @@ class Adaptor(CbAdaptor):
               }
         self.sendZwaveMessage(cmd)
         reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
-
-    def onOff(self, boolean):
-        if boolean:
-            return "on"
-        elif not boolean:
-            return "off"
 
     def onZwaveMessage(self, message):
         #logging.debug("%s %s onZwaveMessage, message: %s", ModuleName, self.id, str(message))
@@ -138,38 +109,35 @@ class Adaptor(CbAdaptor):
                    "request": "get",
                    "address": self.addr,
                    "instance": "0",
-                   "commandClass": "128",
-                   "value": "1"
+                   "commandClass": "128"
                   }
             self.sendZwaveMessage(cmd)
             # Associate PIR alarm with this controller
-            # /ZWaveAPI/Run/devices[47].instances[0].commandClasses[0x85].Set(1,1)
             cmd = {"id": self.id,
                    "request": "post",
                    "address": self.addr,
                    "instance": "0",
                    "commandClass": "133",
                    "action": "Set",
-                   "value": "(1,1)"
+                   "value": "1,1"
                   }
             self.sendZwaveMessage(cmd)
             reactor.callLater(20, self.checkBattery)
             reactor.callLater(30, self.pollSensors)
         elif message["content"] == "data":
-            #try:
-            if True:
+            try:
                 if message["commandClass"] == "49":
                     if message["data"]["name"] == "1":
                         temperature = message["data"]["val"]["value"] 
-                        logging.debug("%s %s onZwaveMessage, temperature: %s", ModuleName, self.id, str(temperature))
+                        #logging.debug("%s %s onZwaveMessage, temperature: %s", ModuleName, self.id, str(temperature))
                         self.sendParameter("temperature", temperature, time.time())
                     elif message["data"]["name"] == "3":
                         luminance = message["data"]["val"]["value"] 
-                        logging.debug("%s %s onZwaveMessage, luminance: %s", ModuleName, self.id, str(luminance))
+                        #logging.debug("%s %s onZwaveMessage, luminance: %s", ModuleName, self.id, str(luminance))
                         self.sendParameter("luminance", luminance, time.time())
                     elif message["data"]["name"] == "5":
                         humidity = message["data"]["val"]["value"] 
-                        logging.debug("%s %s onZwaveMessage, humidity: %s", ModuleName, self.id, str(humidity))
+                        #logging.debug("%s %s onZwaveMessage, humidity: %s", ModuleName, self.id, str(humidity))
                         self.sendParameter("humidity", humidity, time.time())
                 elif message["commandClass"] == "48":
                     if message["data"]["name"] == "1":
@@ -179,17 +147,25 @@ class Adaptor(CbAdaptor):
                             b = "off"
                         logging.debug("%s %s onZwaveMessage, alarm: %s", ModuleName, self.id, b)
                         self.sendParameter("binary_sensor", b, time.time())
-            #except:
-            #    logging.debug("%s %s onZwaveMessage, no data-val-value", ModuleName, self.id)
+                elif message["commandClass"] == "128":
+                     #logging.debug("%s %s onZwaveMessage, battery message: %s", ModuleName, self.id, str(message))
+                     battery = message["data"]["last"]["value"] 
+                     logging.info("%s %s battery level: %s", ModuleName, self.id, battery)
+                     msg = {"id": self.id,
+                            "status": "battery_level",
+                            "battery_level": battery}
+                     self.sendManagerMessage(msg)
+            except:
+                logging.warning("%s %s onZwaveMessage, unexpected message", ModuleName, str(message))
 
     def onAppInit(self, message):
         logging.debug("%s %s %s onAppInit, req = %s", ModuleName, self.id, self.friendly_name, message)
         resp = {"name": self.name,
                 "id": self.id,
                 "status": "ok",
-                "functions": [{"parameter": "binary_sensor"},
-                              {"parameter": "temperature"},
-                              {"parameter": "luminance"}
+                "functions": [{"parameter": "binary_sensor", "interval": 0},
+                              {"parameter": "temperature", "intervale": 300},
+                              {"parameter": "luminance", "interval": 300}],
                 "content": "functions"}
         self.sendMessage(resp, message["id"])
         self.setState("running")
