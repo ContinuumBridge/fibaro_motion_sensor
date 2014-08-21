@@ -46,7 +46,7 @@ class Adaptor(CbAdaptor):
     def sendCharacteristic(self, characteristic, data, timeStamp):
         msg = {"id": self.id,
                "content": "characteristic",
-               "charateristic": characteristic,
+               "characteristic": characteristic,
                "data": data,
                "timeStamp": timeStamp}
         for a in self.apps[characteristic]:
