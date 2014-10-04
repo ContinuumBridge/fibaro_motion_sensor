@@ -26,7 +26,9 @@ class Adaptor(CbAdaptor):
         self.state =            "stopped"
         self.apps =             {"binary_sensor": [],
                                  "temperature": [],
-                                 "luminance": []}
+                                 "luminance": [],
+                                 "battery": [],
+                                 "connected": []}
         # super's __init__ must be called:
         #super(Adaptor, self).__init__(argv)
         CbAdaptor.__init__(self, argv)
@@ -76,10 +78,21 @@ class Adaptor(CbAdaptor):
         self.sendZwaveMessage(cmd)
         reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
 
+    def checkConnected(self):
+        if self.updateTime == self.lastUpdateTime:
+            self.connected = False
+        else:
+            self.connected = True
+        self.sendCharacteristic("connected", self.connected, time.time())
+        self.lastUpdateTime = self.updateTime
+        reactor.callLater(SENSOR_POLL_INTERVAL * 2, self.checkConnected)
+
     def onZwaveMessage(self, message):
         #logging.debug("%s %s onZwaveMessage, message: %s", ModuleName, self.id, str(message))
-        # Alarm command class
         if message["content"] == "init":
+            self.updateTime = 0
+            self.lastUpdateTime = time.time()
+            # Alarm command class
             cmd = {"id": self.id,
                    "request": "get",
                    "address": self.addr,
@@ -177,6 +190,8 @@ class Adaptor(CbAdaptor):
                             "status": "battery_level",
                             "battery_level": battery}
                      self.sendManagerMessage(msg)
+                     self.sendCharacteristic("battery", battery, time.time())
+                self.updateTime = message["data"]["updateTime"]
             except:
                 logging.warning("%s %s onZwaveMessage, unexpected message", ModuleName, str(message))
 
@@ -186,8 +201,10 @@ class Adaptor(CbAdaptor):
                 "id": self.id,
                 "status": "ok",
                 "service": [{"characteristic": "binary_sensor", "interval": 0},
-                            {"characteristic": "temperature", "intervale": 300},
-                            {"characteristic": "luminance", "interval": 300}],
+                            {"characteristic": "temperature", "intervale": 600},
+                            {"characteristic": "luminance", "interval": 600},
+                            {"characteristic": "battery", "interval": 600},
+                            {"characteristic": "connected", "interval": 600}],
                 "content": "service"}
         self.sendMessage(resp, message["id"])
         self.setState("running")
