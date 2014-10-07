@@ -1,0 +1,9 @@
+{
+    "name": "Fibar Group 4097 2048",
+    "url": "https://github.com/ContinuumBridge/fibaro_motion_sensor/archive/v0.2.1.tar.gz",
+    "exe": "fibaro_motion_sensor.py",
+    "description": "Fibaro Motion Sensor. Includes temperature and luminance.",
+    "protocol": "zwave",
+    "provider": "ContinuumBridge",
+    "version": "0.2.1"
+}
