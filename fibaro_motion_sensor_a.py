@@ -6,8 +6,8 @@
 # Written by Peter Claydon
 #
 ModuleName               = "fibaro_motion_sensor"
-BATTERY_CHECK_INTERVAL   = 600      # How often to check battery (secs)
-SENSOR_POLL_INTERVAL     = 600      # How often to request sensor values
+BATTERY_CHECK_INTERVAL   = 43200      # How often to check battery (secs) = 12 hours
+SENSOR_POLL_INTERVAL     = 600        # How often to request sensor values = 10 mins
 
 import sys
 import time
