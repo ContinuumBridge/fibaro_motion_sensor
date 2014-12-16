@@ -192,8 +192,9 @@ class Adaptor(CbAdaptor):
                      self.sendManagerMessage(msg)
                      self.sendCharacteristic("battery", battery, time.time())
                 self.updateTime = message["data"]["updateTime"]
-            except:
+            except Exception as ex:
                 logging.warning("%s %s onZwaveMessage, unexpected message", ModuleName, str(message))
+                logging.warning("%s Exception: %s %s", ModuleName, type(ex), str(ex.args))
 
     def onAppInit(self, message):
         logging.debug("%s %s %s onAppInit, req = %s", ModuleName, self.id, self.friendly_name, message)

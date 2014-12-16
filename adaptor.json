@@ -3,8 +3,8 @@
     "protocol": "zwave", 
     "name": "Fibar Group 4097 2048", 
     "device_resource": "/api/bridge/v1/device/11/", 
-    "url": "https://github.com/ContinuumBridge/fibaro_motion_sensor/archive/v1.0.0.tar.gz", 
-    "version": "1.0.0", 
+    "url": "https://github.com/ContinuumBridge/fibaro_motion_sensor/archive/v1.0.1.tar.gz", 
+    "version": "1.0.1", 
     "provider": "ContinuumBridge", 
     "adaptor_resource": "/api/bridge/v1/adaptor/6/", 
     "description": "Fibaro Motion Sensor. Includes temperature and luminance."
