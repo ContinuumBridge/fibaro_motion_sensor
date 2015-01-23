@@ -151,6 +151,26 @@ class Adaptor(CbAdaptor):
                    "value": "89,0,1"
                   }
             self.sendZwaveMessage(cmd)
+            # Change motion cancellation delay from 30s to 10s
+            cmd = {"id": self.id,
+                   "request": "post",
+                   "address": self.addr,
+                   "instance": "0",
+                   "commandClass": "112",
+                   "action": "Set",
+                   "value": "6,10,2"
+                  }
+            self.sendZwaveMessage(cmd)
+            # Wakeup every 10 minutes
+            cmd = {"id": self.id,
+                   "request": "post",
+                   "address": self.addr,
+                   "instance": "0",
+                   "commandClass": "132",
+                   "action": "Set",
+                   "value": "600,1"
+                  }
+            self.sendZwaveMessage(cmd)
             reactor.callLater(20, self.checkBattery)
             reactor.callLater(30, self.pollSensors)
         elif message["content"] == "data":
