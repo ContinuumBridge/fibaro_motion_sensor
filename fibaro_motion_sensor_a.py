@@ -131,6 +131,26 @@ class Adaptor(CbAdaptor):
                    "value": "1,1"
                   }
             self.sendZwaveMessage(cmd)
+            # Associate temperature/luminance with this controller
+            cmd = {"id": self.id,
+                   "request": "post",
+                   "address": self.addr,
+                   "instance": "0",
+                   "commandClass": "133",
+                   "action": "Set",
+                   "value": "2,1"
+                  }
+            self.sendZwaveMessage(cmd)
+            # Associate temperature/luminance with this controller
+            cmd = {"id": self.id,
+                   "request": "post",
+                   "address": self.addr,
+                   "instance": "0",
+                   "commandClass": "133",
+                   "action": "Set",
+                   "value": "3,1"
+                  }
+            self.sendZwaveMessage(cmd)
             # Turn off LED for motion
             cmd = {"id": self.id,
                    "request": "post",
