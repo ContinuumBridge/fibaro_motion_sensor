@@ -73,6 +73,14 @@ class Adaptor(CbAdaptor):
         self.sendZwaveMessage(cmd)
         reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
 
+    def forceInterview(self):
+        self.cbLog("debug", "forceInterview")
+        cmd = {"id": self.id,
+               "request": "force_interview",
+               "address": self.addr
+              }
+        self.sendZwaveMessage(cmd)
+
     def checkConnected(self):
         if self.updateTime == self.lastUpdateTime:
             self.connected = False
@@ -83,6 +91,7 @@ class Adaptor(CbAdaptor):
         reactor.callLater(SENSOR_POLL_INTERVAL * 2, self.checkConnected)
 
     def onZwaveMessage(self, message):
+        #self.cbLog("debug", "onZwaveMessage, message: " + str(message))
         if message["content"] == "init":
             self.updateTime = 0
             self.lastUpdateTime = time.time()
@@ -258,6 +267,12 @@ class Adaptor(CbAdaptor):
             self.cbLog("warning", "app message without data: " + str(message))
         else:
             self.cbLog("warning", "This is a sensor. Message not understood: " +  str(message))
+
+    def onAction(self, action):
+        if action == "interview":
+            self.forceInterview()
+        else:
+            self.cbLog("warning", "onAction. Unrecognised action: " +  str(action))
 
     def onConfigureMessage(self, config):
         """Config is based on what apps are to be connected.
