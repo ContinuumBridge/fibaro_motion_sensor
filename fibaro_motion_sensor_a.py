@@ -4,7 +4,7 @@
 # Written by Peter Claydon
 #
 ModuleName               = "fibaro_motion_sensor"
-BATTERY_CHECK_INTERVAL   = 43200      # How often to check battery (secs) = 12 hours
+BATTERY_CHECK_INTERVAL   = 10800      # How often to check battery (secs) = 3 hours
 SENSOR_POLL_INTERVAL     = 600        # How often to request sensor values = 10 mins
 
 import sys
@@ -71,7 +71,7 @@ class Adaptor(CbAdaptor):
                "value": ""
               }
         self.sendZwaveMessage(cmd)
-        reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
+        #reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
 
     def forceInterview(self):
         self.cbLog("debug", "forceInterview")
@@ -190,14 +190,14 @@ class Adaptor(CbAdaptor):
                    "value": "6,10,2"
                   }
             self.sendZwaveMessage(cmd)
-            # Wakeup every 10 minutes
+            # Wakeup every 5 minutes
             cmd = {"id": self.id,
                    "request": "post",
                    "address": self.addr,
                    "instance": "0",
                    "commandClass": "132",
                    "action": "Set",
-                   "value": "600,1"
+                   "value": "300,1"
                   }
             self.sendZwaveMessage(cmd)
             reactor.callLater(20, self.checkBattery)
@@ -207,15 +207,15 @@ class Adaptor(CbAdaptor):
                 if message["commandClass"] == "49":
                     if message["value"] == "1":
                         temperature = message["data"]["val"]["value"] 
-                        #self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
+                        self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
                         self.sendCharacteristic("temperature", temperature, time.time())
                     elif message["value"] == "3":
                         luminance = message["data"]["val"]["value"] 
-                        #self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
+                        self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
                         self.sendCharacteristic("luminance", luminance, time.time())
                     elif message["value"] == "5":
                         humidity = message["data"]["val"]["value"] 
-                        #self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
+                        self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
                         self.sendCharacteristic("humidity", humidity, time.time())
                 elif message["commandClass"] == "48":
                     if message["value"] == "1":
