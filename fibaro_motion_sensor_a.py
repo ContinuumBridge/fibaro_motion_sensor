@@ -201,7 +201,7 @@ class Adaptor(CbAdaptor):
                   }
             self.sendZwaveMessage(cmd)
             reactor.callLater(20, self.checkBattery)
-            #reactor.callLater(30, self.pollSensors)
+            reactor.callLater(30, self.pollSensors)
         elif message["content"] == "data":
             try:
                 if message["commandClass"] == "49":
