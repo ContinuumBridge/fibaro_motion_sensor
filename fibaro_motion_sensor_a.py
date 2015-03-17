@@ -71,7 +71,7 @@ class Adaptor(CbAdaptor):
                "value": ""
               }
         self.sendZwaveMessage(cmd)
-        #reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
+        reactor.callLater(SENSOR_POLL_INTERVAL, self.pollSensors)
 
     def forceInterview(self):
         self.cbLog("debug", "forceInterview")
