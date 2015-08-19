@@ -30,11 +30,14 @@ class Adaptor(CbAdaptor):
         CbAdaptor.__init__(self, argv)
  
     def setState(self, action):
+        #self.cbLog("debug", "setting state to: " + action)
         # error is only ever set from the running state, so set back to running if error is cleared
         if action == "error":
             self.state == "error"
         elif action == "clear_error":
             self.state = "running"
+        else:
+            self.state = action
         msg = {"id": self.id,
                "status": "state",
                "state": self.state}
@@ -242,8 +245,8 @@ class Adaptor(CbAdaptor):
         resp = {"name": self.name,
                 "id": self.id,
                 "status": "ok",
-                "service": [{"characteristic": "binary_sensor", "interval": 0},
-                            {"characteristic": "temperature", "intervale": 600},
+                "service": [{"characteristic": "binary_sensor", "interval": 0, "type": "pir"},
+                            {"characteristic": "temperature", "interval": 600},
                             {"characteristic": "luminance", "interval": 600},
                             {"characteristic": "battery", "interval": 600},
                             {"characteristic": "connected", "interval": 600}],
@@ -275,6 +278,7 @@ class Adaptor(CbAdaptor):
             self.cbLog("warning", "onAction. Unrecognised action: " +  str(action))
 
     def onConfigureMessage(self, config):
+        #self.cbLog("debug", "onConfigureMessage, config: " + str(config))
         """Config is based on what apps are to be connected.
             May be called again if there is a new configuration, which
             could be because a new app has been added.
