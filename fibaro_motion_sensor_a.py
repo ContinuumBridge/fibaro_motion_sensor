@@ -217,6 +217,7 @@ class Adaptor(CbAdaptor):
                     if message["value"] == "1":
                         temperature = message["data"]["val"]["value"] 
                         updateTime = message["data"]["val"]["updateTime"] 
+                        # Only send if we don't already have an update from this time and the update is recent (not stale after restart)
                         if updateTime != self.lastTemperatureTime and time.time() - updateTime < 10:
                             self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
                             self.sendCharacteristic("temperature", temperature, updateTime)
