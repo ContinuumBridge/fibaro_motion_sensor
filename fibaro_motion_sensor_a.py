@@ -9,6 +9,7 @@ SENSOR_POLL_INTERVAL     = 600        # How often to request sensor values = 10 
 
 import sys
 import time
+import json
 import os
 from pprint import pprint
 from cbcommslib import CbAdaptor
@@ -18,13 +19,18 @@ from twisted.internet import reactor
 
 class Adaptor(CbAdaptor):
     def __init__(self, argv):
-        self.status =           "ok"
-        self.state =            "stopped"
-        self.apps =             {"binary_sensor": [],
-                                 "temperature": [],
-                                 "luminance": [],
-                                 "battery": [],
-                                 "connected": []}
+        self.status =                "ok"
+        self.state =                 "stopped"
+        self.apps =                  {"binary_sensor": [],
+                                      "temperature": [],
+                                      "luminance": [],
+                                      "battery": [],
+                                      "connected": []}
+        self.lastTemperatureTime =   0
+        self.lastHumidityTime =      0
+        self.lastLuminanceTime =     0
+        self.lastBinaryTime =        0
+        self.lastBatteryTime =       0
         # super's __init__ must be called:
         #super(Adaptor, self).__init__(argv)
         CbAdaptor.__init__(self, argv)
@@ -94,7 +100,7 @@ class Adaptor(CbAdaptor):
         reactor.callLater(SENSOR_POLL_INTERVAL * 2, self.checkConnected)
 
     def onZwaveMessage(self, message):
-        #self.cbLog("debug", "onZwaveMessage, message: " + str(message))
+        #self.cbLog("debug", "onZwaveMessage, message: " + str(json.dumps(message, indent=4)))
         if message["content"] == "init":
             self.updateTime = 0
             self.lastUpdateTime = time.time()
@@ -210,31 +216,46 @@ class Adaptor(CbAdaptor):
                 if message["commandClass"] == "49":
                     if message["value"] == "1":
                         temperature = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
-                        self.sendCharacteristic("temperature", temperature, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastTemperatureTime and time.time() - updateTime < 10:
+                            self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
+                            self.sendCharacteristic("temperature", temperature, updateTime)
+                            self.lastTemperatureTime = updateTime
                     elif message["value"] == "3":
                         luminance = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
-                        self.sendCharacteristic("luminance", luminance, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastLuminanceTime and time.time() - updateTime < 10:
+                            self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
+                            self.sendCharacteristic("luminance", luminance, time.time())
+                            self.lastLuminanceTime = updateTime
                     elif message["value"] == "5":
                         humidity = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
-                        self.sendCharacteristic("humidity", humidity, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastHumidityTime and time.time() - updateTime < 10:
+                            self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
+                            self.sendCharacteristic("humidity", humidity, time.time())
+                            self.lastHumidityTime = updateTime
                 elif message["commandClass"] == "48":
                     if message["value"] == "1":
-                        if message["data"]["level"]["value"]:
-                            b = "on"
-                        else:
-                            b = "off"
-                        self.cbLog("debug", "onZwaveMessage, alarm: " + b)
-                        self.sendCharacteristic("binary_sensor", b, time.time())
+                        updateTime = message["data"]["level"]["updateTime"]
+                        if updateTime != self.lastBinaryTime and time.time() - updateTime < 10:
+                            if message["data"]["level"]["value"]:
+                                b = "on"
+                            else:
+                                b = "off"
+                            self.cbLog("debug", "onZwaveMessage, alarm: " + b)
+                            self.sendCharacteristic("binary_sensor", b, time.time())
+                            self.lastBinaryTime = updateTime
                 elif message["commandClass"] == "128":
-                     battery = message["data"]["last"]["value"] 
-                     msg = {"id": self.id,
-                            "status": "battery_level",
-                            "battery_level": battery}
-                     self.sendManagerMessage(msg)
-                     self.sendCharacteristic("battery", battery, time.time())
+                    updateTime = message["data"]["last"]["updateTime"]
+                    if updateTime != self.lastBatteryTime and time.time() - updateTime < 10:
+                        battery = message["data"]["last"]["value"] 
+                        msg = {"id": self.id,
+                               "status": "battery_level",
+                               "battery_level": battery}
+                        self.sendManagerMessage(msg)
+                        self.sendCharacteristic("battery", battery, time.time())
+                        self.lastBatteryTime = updateTime
                 self.updateTime = message["data"]["updateTime"]
             except Exception as ex:
                 self.cbLog("warning", "onZwaveMessage, unexpected message: " + str(message))
