@@ -6,6 +6,7 @@
 ModuleName               = "fibaro_motion_sensor"
 BATTERY_CHECK_INTERVAL   = 10800      # How often to check battery (secs) = 3 hours
 SENSOR_POLL_INTERVAL     = 600        # How often to request sensor values = 10 mins
+TIME_CUTOFF              = 1800       # Data older than this is considered "stale"
 
 import sys
 import time
@@ -59,6 +60,7 @@ class Adaptor(CbAdaptor):
             self.sendMessage(msg, a)
 
     def checkBattery(self):
+        self.cbLog("debug", "checkBattery")
         cmd = {"id": self.id,
                "request": "post",
                "address": self.addr,
@@ -91,6 +93,7 @@ class Adaptor(CbAdaptor):
         self.sendZwaveMessage(cmd)
 
     def checkConnected(self):
+        self.cbLog("debug", "checkConnected, updateTime: " + str(self.updateTime) + ", lastUpdateTime: " + str(self.lastUpdateTime))
         if self.updateTime == self.lastUpdateTime:
             self.connected = False
         else:
@@ -209,8 +212,9 @@ class Adaptor(CbAdaptor):
                    "value": "300,1"
                   }
             self.sendZwaveMessage(cmd)
-            reactor.callLater(20, self.checkBattery)
+            reactor.callLater(300, self.checkBattery)
             reactor.callLater(30, self.pollSensors)
+            reactor.callLater(300, self.checkConnected)
         elif message["content"] == "data":
             try:
                 if message["commandClass"] == "49":
@@ -218,28 +222,28 @@ class Adaptor(CbAdaptor):
                         temperature = message["data"]["val"]["value"] 
                         updateTime = message["data"]["val"]["updateTime"] 
                         # Only send if we don't already have an update from this time and the update is recent (not stale after restart)
-                        if updateTime != self.lastTemperatureTime and time.time() - updateTime < 10:
+                        if updateTime != self.lastTemperatureTime and time.time() - updateTime < TIME_CUTOFF:
                             self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
                             self.sendCharacteristic("temperature", temperature, updateTime)
                             self.lastTemperatureTime = updateTime
                     elif message["value"] == "3":
                         luminance = message["data"]["val"]["value"] 
                         updateTime = message["data"]["val"]["updateTime"] 
-                        if updateTime != self.lastLuminanceTime and time.time() - updateTime < 10:
+                        if updateTime != self.lastLuminanceTime and time.time() - updateTime < TIME_CUTOFF:
                             self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
                             self.sendCharacteristic("luminance", luminance, time.time())
                             self.lastLuminanceTime = updateTime
                     elif message["value"] == "5":
                         humidity = message["data"]["val"]["value"] 
                         updateTime = message["data"]["val"]["updateTime"] 
-                        if updateTime != self.lastHumidityTime and time.time() - updateTime < 10:
+                        if updateTime != self.lastHumidityTime and time.time() - updateTime < TIME_CUTOFF:
                             self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
                             self.sendCharacteristic("humidity", humidity, time.time())
                             self.lastHumidityTime = updateTime
                 elif message["commandClass"] == "48":
                     if message["value"] == "1":
                         updateTime = message["data"]["level"]["updateTime"]
-                        if updateTime != self.lastBinaryTime and time.time() - updateTime < 10:
+                        if updateTime != self.lastBinaryTime and time.time() - updateTime < TIME_CUTOFF:
                             if message["data"]["level"]["value"]:
                                 b = "on"
                             else:
@@ -249,8 +253,9 @@ class Adaptor(CbAdaptor):
                             self.lastBinaryTime = updateTime
                 elif message["commandClass"] == "128":
                     updateTime = message["data"]["last"]["updateTime"]
-                    if updateTime != self.lastBatteryTime and time.time() - updateTime < 10:
+                    if (updateTime != self.lastBatteryTime) and (time.time() - updateTime < TIME_CUTOFF):
                         battery = message["data"]["last"]["value"] 
+                        self.cbLog("debug", "battery: " + str(battery))
                         msg = {"id": self.id,
                                "status": "battery_level",
                                "battery_level": battery}
@@ -294,6 +299,7 @@ class Adaptor(CbAdaptor):
             self.cbLog("warning", "This is a sensor. Message not understood: " +  str(message))
 
     def onAction(self, action):
+        self.cbLog("debug", "onAction")
         if action == "interview":
             self.forceInterview()
         else:
