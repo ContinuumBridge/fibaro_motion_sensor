@@ -192,14 +192,14 @@ class Adaptor(CbAdaptor):
                    "value": "89,0,1"
                   }
             self.sendZwaveMessage(cmd)
-            # Change motion cancellation delay from 30s to 10s
+            # Change motion cancellation delay from 30s to 60s
             cmd = {"id": self.id,
                    "request": "post",
                    "address": self.addr,
                    "instance": "0",
                    "commandClass": "112",
                    "action": "Set",
-                   "value": "6,10,2"
+                   "value": "6,60,2"
                   }
             self.sendZwaveMessage(cmd)
             # Wakeup every 5 minutes
