@@ -103,7 +103,7 @@ class Adaptor(CbAdaptor):
         reactor.callLater(SENSOR_POLL_INTERVAL * 2, self.checkConnected)
 
     def onZwaveMessage(self, message):
-        #self.cbLog("debug", "onZwaveMessage, message: " + str(json.dumps(message, indent=4)))
+        self.cbLog("debug", "onZwaveMessage, message: " + str(json.dumps(message, indent=4)))
         if message["content"] == "init":
             self.updateTime = 0
             self.lastUpdateTime = time.time()
